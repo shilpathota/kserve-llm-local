@@ -1,0 +1,6 @@
+kserve:
+  controller:
+    deploymentMode: RawDeployment           # critical: without this, KServe will crash (expects Knative by default)
+    gateway:
+      ingressGateway:
+        className: istio                    # align with the gateway we installed

@@ -1,0 +1,3 @@
+﻿[
+  {"op":"add","path":"/spec/predictor/model/args/-","value":"--served-model-name=distilgpt2"}
+]

@@ -1,0 +1,246 @@
+// server.js — Single-file UI + proxy to avoid CORS
+// Usage:
+//   1) Ensure your KServe port-forward is running locally, e.g.:
+//        kubectl -n default port-forward svc/distilgpt2-predictor 8085:80
+//   2) In this folder, run:
+//        npm init -y
+//        npm i express http-proxy-middleware
+//        node server.js
+//   3) Open http://localhost:3000 in your browser.
+//   4) In the UI, click "Self‑test". You should see your model list.
+//
+// Why this fixes "TypeError: Failed to fetch" + CORS errors:
+//   Opening an HTML file directly (origin "null") or from a different
+//   port triggers CORS. This tiny Express app serves the UI and proxies
+//   all /openai/* calls to your KServe server on http://localhost:8085,
+//   keeping everything on the same origin (http://localhost:3000), so
+//   the browser no longer blocks requests.
+
+const express = require('express');
+const path = require('path');
+const { createProxyMiddleware } = require('http-proxy-middleware');
+
+// Target KServe model server (change if your port-forward differs)
+const KSERVE_URL = process.env.KSERVE_URL || 'http://localhost:8085';
+const PORT = process.env.PORT || 3000;
+
+const app = express();
+
+// --- Proxy: same-origin bridge to KServe OpenAI shim ---
+// When the UI calls /openai/v1/... it will be forwarded to
+//   ${KSERVE_URL}/openai/v1/...
+app.use('/openai', createProxyMiddleware({
+  target: KSERVE_URL,
+  changeOrigin: true,
+  ws: true,
+  // Do NOT rewrite the path; KServe expects the /openai prefix
+}));
+
+// --- Minimal UI (served from /) ---
+const INDEX_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KServe Chat UI (CORS-safe)</title>
+  <style>
+    :root { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+    body { margin: 0; background: #0b1020; color: #e6e7ea; }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 16px; }
+    header { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+    header .pill { background:#121a34; padding:6px 10px; border-radius:999px; font-size:12px; opacity:.9 }
+    .row { display:flex; gap:12px; align-items:center; flex-wrap: wrap; }
+    input, textarea, select, button { background:#121a34; color:#e6e7ea; border:1px solid #273052; border-radius:8px; padding:8px 10px; }
+    textarea { width:100%; min-height:80px; }
+    button.primary { background:#2663ff; border-color:#2663ff; cursor:pointer; }
+    button:disabled { opacity:.6; cursor:not-allowed; }
+    .toolbar { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0; }
+    .chat { background:#0f1630; border:1px solid #273052; border-radius:12px; padding:12px; min-height:260px; }
+    .msg { padding:8px 10px; border-radius:10px; margin:6px 0; white-space:pre-wrap; }
+    .user { background:#1f2850; }
+    .assistant { background:#182042; }
+    .sys { background:#372d1b; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+    details { background:#0f1630; border:1px solid #273052; border-radius:12px; padding:8px 12px; margin-top:12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h2 style="margin:0">KServe Chat UI</h2>
+      <span class="pill">Proxy → <span class="mono" id="target">${KSERVE_URL}</span></span>
+      <button id="selftest" class="primary">Self‑test</button>
+      <span id="selftest-status" class="mono" style="opacity:.8"></span>
+    </header>
+
+    <div class="row">
+      <label>Model
+        <input id="model" value="distilgpt2" />
+      </label>
+      <label>Max tokens
+        <input id="maxTokens" type="number" min="1" max="1024" value="64" />
+      </label>
+      <label>Temperature
+        <input id="temp" type="number" step="0.1" min="0" max="2" value="0.7" />
+      </label>
+      <label style="display:flex; align-items:center; gap:6px;">Stream
+        <input id="doStream" type="checkbox" checked />
+      </label>
+      <label style="display:flex; align-items:center; gap:6px;">Use Chat
+        <input id="useChat" type="checkbox" />
+      </label>
+    </div>
+
+    <div class="toolbar">
+      <button id="send" class="primary">Send</button>
+      <button id="clear">Clear</button>
+    </div>
+
+    <div class="chat" id="chat"></div>
+
+    <details>
+      <summary>Troubleshooting</summary>
+      <ol>
+        <li>Ensure port-forward is running: <code>kubectl -n default port-forward svc/distilgpt2-predictor 8085:80</code></li>
+        <li>This app proxies <code>/openai/*</code> to <code>${KSERVE_URL}</code> to avoid CORS. Calls go to:
+          <ul>
+            <li><code>/openai/v1/completions</code> (for non-chat)</li>
+            <li><code>/openai/v1/chat/completions</code> (for chat)</li>
+          </ul>
+        </li>
+        <li>If you see "chat template is no longer allowed", uncheck <b>Use Chat</b> and send as a plain completion.</li>
+      </ol>
+    </details>
+  </div>
+
+  <script>
+    const el = (id) => document.getElementById(id);
+    const chat = el('chat');
+
+    function addMsg(role, text) {
+      const div = document.createElement('div');
+      div.className = `msg ${role}`;
+      div.textContent = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function selfTest() {
+      const out = el('selftest-status');
+      out.textContent = '…';
+      try {
+        const r = await fetch('/openai/v1/models');
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const j = await r.json();
+        out.textContent = 'OK: ' + JSON.stringify(j.models || j);
+      } catch (e) {
+        out.textContent = 'FAILED: ' + e.message + ' — Ensure port-forward and proxy are running.';
+      }
+    }
+
+    async function send() {
+      const model = el('model').value.trim();
+      const max_tokens = parseInt(el('maxTokens').value || '64', 10);
+      const temperature = parseFloat(el('temp').value || '0.7');
+      const stream = el('doStream').checked;
+      const useChat = el('useChat').checked;
+
+      const userText = prompt('Message to send:', 'Hello, my name is');
+      if (!userText) return;
+      addMsg('user', userText);
+
+      const url = useChat ? '/openai/v1/chat/completions' : '/openai/v1/completions';
+      const body = useChat ? {
+        model,
+        messages: [
+          { role: 'system', content: 'You are concise.' },
+          { role: 'user',   content: userText }
+        ],
+        temperature,
+        max_tokens,
+        stream,
+      } : {
+        model,
+        prompt: userText,
+        temperature,
+        max_tokens,
+        stream,
+      };
+
+      try {
+        if (stream) {
+          // SSE-like streaming: newlines separated data: {id,object,choices:[{text|delta}]}
+          const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          const reader = resp.body.getReader();
+          let acc = '';
+          const dec = new TextDecoder();
+          const out = document.createElement('div');
+          out.className = 'msg assistant';
+          chat.appendChild(out);
+
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            acc += dec.decode(value, { stream: true });
+            // Try to split by lines; append tokens as they arrive
+            const parts = acc.split('\n');
+            acc = parts.pop();
+            for (const line of parts) {
+              if (!line) continue;
+              try {
+                const obj = JSON.parse(line);
+                const choice = obj.choices?.[0];
+                const delta = choice?.text ?? choice?.delta?.content ?? '';
+                if (delta) {
+                  out.textContent += delta;
+                  chat.scrollTop = chat.scrollHeight;
+                }
+              } catch {}
+            }
+          }
+          // Flush remaining buffered text (best-effort JSON parse)
+          try {
+            if (acc) {
+              const obj = JSON.parse(acc);
+              const choice = obj.choices?.[0];
+              const delta = choice?.text ?? choice?.delta?.content ?? '';
+              if (delta) out.textContent += delta;
+            }
+          } catch {}
+        } else {
+          const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          const data = await resp.json();
+          let text = '';
+          const ch = data.choices?.[0];
+          if (ch?.text) text = ch.text; // completions
+          else if (ch?.message?.content) text = ch.message.content; // chat
+          addMsg('assistant', text || '[no text in response]');
+        }
+      } catch (e) {
+        addMsg('sys', 'Request failed: ' + e.message + '\n— Is port-forward running? (svc → 8085)\n— Is this proxy running? (UI on :3000)');
+      }
+    }
+
+    el('selftest').addEventListener('click', selfTest);
+    el('send').addEventListener('click', send);
+    el('clear').addEventListener('click', () => chat.replaceChildren());
+  </script>
+</body>
+</html>`;
+
+app.get('/', (_req, res) => res.status(200).type('html').send(INDEX_HTML));
+
+app.listen(PORT, () => {
+  console.log(`UI listening on http://localhost:${PORT}`);
+  console.log(`Proxying     /openai/*  → ${KSERVE_URL}`);
+});

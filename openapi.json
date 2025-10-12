@@ -1,0 +1,566 @@
+{
+    "openapi":  "3.1.0",
+    "info":  {
+                 "title":  "KServe ModelServer",
+                 "version":  "0.15.0"
+             },
+    "paths":  {
+                  "/":  {
+                            "get":  {
+                                        "summary":  "Live",
+                                        "description":  "Server live.\n\nReturns ``{\"status\": \"alive\"}`` on successful invocation.\nPrimarily meant to be used for Kubernetes liveness check.\n\nReturns:\n    Dict: {\"status\": \"alive\"}",
+                                        "operationId":  "live__get",
+                                        "responses":  "@{200=}"
+                                    }
+                        },
+                  "/metrics":  {
+                                   "get":  {
+                                               "summary":  "Metrics Handler",
+                                               "operationId":  "metrics_handler_metrics_get",
+                                               "responses":  "@{200=}"
+                                           }
+                               },
+                  "/v1/models":  {
+                                     "get":  {
+                                                 "tags":  "V1",
+                                                 "summary":  "Models",
+                                                 "description":  "Get a list of models in the model registry.\n\nReturns:\n    Dict[str, List[str]]: List of model names.",
+                                                 "operationId":  "models_v1_models_get",
+                                                 "responses":  "@{200=}"
+                                             }
+                                 },
+                  "/v1/models/{model_name}":  {
+                                                  "get":  {
+                                                              "tags":  "V1",
+                                                              "summary":  "Model Ready",
+                                                              "description":  "Check if a given model is ready.\n\nArgs:\n    model_name (str): Model name.\n\nReturns:\n    Dict[str, Union[str, bool]]: Name of the model and whether it\u0027s ready.",
+                                                              "operationId":  "model_ready_v1_models__model_name__get",
+                                                              "parameters":  "",
+                                                              "responses":  "@{200=; 422=}"
+                                                          }
+                                              },
+                  "/v1/models/{model_name}:predict":  {
+                                                          "post":  {
+                                                                       "tags":  "V1",
+                                                                       "summary":  "Predict",
+                                                                       "description":  "Predict request handler.\n\nIt sends the request to the dataplane where the model will process the request body.\n\nArgs:\n    model_name (str): Model name.\n    request (Request): Raw request object.\n\nReturns:\n    Dict|Response: Model inference response.",
+                                                                       "operationId":  "predict_v1_models__model_name__predict_post",
+                                                                       "parameters":  "",
+                                                                       "responses":  "@{200=; 422=}"
+                                                                   }
+                                                      },
+                  "/v1/models/{model_name}:explain":  {
+                                                          "post":  {
+                                                                       "tags":  "V1",
+                                                                       "summary":  "Explain",
+                                                                       "description":  "Explain handler.\n\nArgs:\n    model_name (str): Model name.\n    request (Request): Raw request object.\n\nReturns:\n    Dict: Explainer output.",
+                                                                       "operationId":  "explain_v1_models__model_name__explain_post",
+                                                                       "parameters":  "",
+                                                                       "responses":  "@{200=; 422=}"
+                                                                   }
+                                                      },
+                  "/v2":  {
+                              "get":  {
+                                          "tags":  "V2",
+                                          "summary":  "Metadata",
+                                          "description":  "Server metadata endpoint.\n\nReturns:\n    ServerMetadataResponse: Server metadata JSON object.",
+                                          "operationId":  "metadata_v2_get",
+                                          "responses":  "@{200=}"
+                                      }
+                          },
+                  "/v2/health/live":  {
+                                          "get":  {
+                                                      "tags":  "V2",
+                                                      "summary":  "Live",
+                                                      "description":  "Server live endpoint.\n\nReturns:\n    ServerLiveResponse: Server live message.",
+                                                      "operationId":  "live_v2_health_live_get",
+                                                      "responses":  "@{200=}"
+                                                  }
+                                      },
+                  "/v2/health/ready":  {
+                                           "get":  {
+                                                       "tags":  "V2",
+                                                       "summary":  "Ready",
+                                                       "description":  "Server ready endpoint.\n\nReturns:\n    ServerReadyResponse: Server ready message.",
+                                                       "operationId":  "ready_v2_health_ready_get",
+                                                       "responses":  "@{200=}"
+                                                   }
+                                       },
+                  "/v2/models":  {
+                                     "get":  {
+                                                 "tags":  "V2",
+                                                 "summary":  "Models",
+                                                 "description":  "Get a list of models in the model registry.\n\nReturns:\n    ListModelsResponse: List of models object.",
+                                                 "operationId":  "models_v2_models_get",
+                                                 "responses":  "@{200=}"
+                                             }
+                                 },
+                  "/v2/models/{model_name}":  {
+                                                  "get":  {
+                                                              "tags":  "V2",
+                                                              "summary":  "Model Metadata",
+                                                              "description":  "Model metadata handler. It provides information about a model.\n\nArgs:\n    model_name (str): Model name.\n    model_version (Optional[str]): Model version (optional).\n\nReturns:\n    ModelMetadataResponse: Model metadata object.",
+                                                              "operationId":  "model_metadata_v2_models__model_name__get",
+                                                              "parameters":  " ",
+                                                              "responses":  "@{200=; 422=}"
+                                                          }
+                                              },
+                  "/v2/models/{model_name}/ready":  {
+                                                        "get":  {
+                                                                    "tags":  "V2",
+                                                                    "summary":  "Model Ready",
+                                                                    "description":  "Check if a given model is ready.\n\nArgs:\n    model_name (str): Model name.\n    model_version (str): Model version.\n\nReturns:\n    ModelReadyResponse: Model ready object",
+                                                                    "operationId":  "model_ready_v2_models__model_name__ready_get",
+                                                                    "parameters":  " ",
+                                                                    "responses":  "@{200=; 422=}"
+                                                                }
+                                                    },
+                  "/v2/models/{model_name}/versions/{model_version}/ready":  {
+                                                                                 "get":  {
+                                                                                             "tags":  "V2",
+                                                                                             "summary":  "Model Ready",
+                                                                                             "description":  "Check if a given model is ready.\n\nArgs:\n    model_name (str): Model name.\n    model_version (str): Model version.\n\nReturns:\n    ModelReadyResponse: Model ready object",
+                                                                                             "operationId":  "model_ready_v2_models__model_name__versions__model_version__ready_get",
+                                                                                             "parameters":  " ",
+                                                                                             "responses":  "@{200=; 422=}"
+                                                                                         }
+                                                                             },
+                  "/v2/models/{model_name}/infer":  {
+                                                        "post":  {
+                                                                     "tags":  "V2",
+                                                                     "summary":  "Infer",
+                                                                     "description":  "Infer handler.\n\nArgs:\n    raw_request (Request): fastapi request object,\n    raw_response (Response): fastapi response object,\n    model_name (str): Model name.\n    request_body (InferenceRequest): Inference request body.\n    model_version (Optional[str]): Model version (optional).\n\nReturns:\n    InferenceResponse: Inference response object.",
+                                                                     "operationId":  "infer_v2_models__model_name__infer_post",
+                                                                     "parameters":  " ",
+                                                                     "requestBody":  "@{required=True; content=}",
+                                                                     "responses":  "@{200=; 422=}"
+                                                                 }
+                                                    },
+                  "/v2/repository/models/{model_name}/load":  {
+                                                                  "post":  {
+                                                                               "tags":  "V2",
+                                                                               "summary":  "Load",
+                                                                               "description":  "Model load handler.\n\nArgs:\n    model_name (str): Model name.\n\nReturns:\n    Dict: {\"name\": model_name, \"load\": True}",
+                                                                               "operationId":  "load_v2_repository_models__model_name__load_post",
+                                                                               "parameters":  "",
+                                                                               "responses":  "@{200=; 422=}"
+                                                                           }
+                                                              },
+                  "/v2/repository/models/{model_name}/unload":  {
+                                                                    "post":  {
+                                                                                 "tags":  "V2",
+                                                                                 "summary":  "Unload",
+                                                                                 "description":  "Model unload handler.\n\nArgs:\n    model_name (str): Model name.\n\nReturns:\n    Dict: {\"name\": model_name, \"unload\": True}",
+                                                                                 "operationId":  "unload_v2_repository_models__model_name__unload_post",
+                                                                                 "parameters":  "",
+                                                                                 "responses":  "@{200=; 422=}"
+                                                                             }
+                                                                },
+                  "/openai/v1/completions":  {
+                                                 "post":  {
+                                                              "tags":  "OpenAI",
+                                                              "summary":  "Create Completion",
+                                                              "description":  "Create completion handler.\n\nArgs:\n    request_body (CompletionCreateParams): Completion params body.\n    raw_request (Request): fastapi request object,\n    response (Response): fastapi response object\n\nReturns:\n    InferenceResponse: Inference response object.",
+                                                              "operationId":  "create_completion_openai_v1_completions_post",
+                                                              "requestBody":  "@{content=; required=True}",
+                                                              "responses":  "@{200=; 422=}"
+                                                          }
+                                             },
+                  "/openai/v1/chat/completions":  {
+                                                      "post":  {
+                                                                   "tags":  "OpenAI",
+                                                                   "summary":  "Create Chat Completion",
+                                                                   "description":  "Create chat completion handler.\n\nArgs:\n    request_body (ChatCompletionRequestAdapter): Chat completion params body.\n    raw_request (Request): fastapi request object,\n    response (Response): fastapi response object\n\nReturns:\n    InferenceResponse: Inference response object.",
+                                                                   "operationId":  "create_chat_completion_openai_v1_chat_completions_post",
+                                                                   "requestBody":  "@{content=; required=True}",
+                                                                   "responses":  "@{200=; 422=}"
+                                                               }
+                                                  },
+                  "/openai/v1/embeddings":  {
+                                                "post":  {
+                                                             "tags":  "OpenAI",
+                                                             "summary":  "Create Embedding",
+                                                             "description":  "Create embedding handler.\nArgs:\n    request_body (EmbeddingRequestAdapter): Embedding params body.\n    raw_request (Request): fastapi request object,\n    model_name (str): Model name.\nReturns:\n    InferenceResponse: Inference response object.",
+                                                             "operationId":  "create_embedding_openai_v1_embeddings_post",
+                                                             "requestBody":  "@{content=; required=True}",
+                                                             "responses":  "@{200=; 422=}"
+                                                         }
+                                            },
+                  "/openai/v1/models":  {
+                                            "get":  {
+                                                        "tags":  "OpenAI",
+                                                        "summary":  "Models",
+                                                        "description":  "Create chat completion handler.\n\nArgs:\n    raw_request (Request): fastapi request object,\n\nReturns:\n    ModelList: Model response object.",
+                                                        "operationId":  "models_openai_v1_models_get",
+                                                        "responses":  "@{200=}"
+                                                    }
+                                        },
+                  "/openai/v1/models/{model_name}":  {
+                                                         "get":  {
+                                                                     "tags":  "OpenAI",
+                                                                     "summary":  "Health",
+                                                                     "operationId":  "health_openai_v1_models__model_name__get",
+                                                                     "parameters":  "",
+                                                                     "responses":  "@{200=; 422=}"
+                                                                 }
+                                                     }
+              },
+    "components":  {
+                       "schemas":  {
+                                       "Audio":  {
+                                                     "properties":  "@{id=}",
+                                                     "type":  "object",
+                                                     "required":  "id",
+                                                     "title":  "Audio"
+                                                 },
+                                       "AudioURL":  {
+                                                        "properties":  "@{url=}",
+                                                        "type":  "object",
+                                                        "required":  "url",
+                                                        "title":  "AudioURL"
+                                                    },
+                                       "BaseModel":  {
+                                                         "properties":  "",
+                                                         "type":  "object",
+                                                         "title":  "BaseModel"
+                                                     },
+                                       "ChatCompletionAssistantMessageParam":  {
+                                                                                   "properties":  "@{role=; audio=; content=; function_call=; name=; refusal=; tool_calls=}",
+                                                                                   "type":  "object",
+                                                                                   "required":  "role",
+                                                                                   "title":  "ChatCompletionAssistantMessageParam"
+                                                                               },
+                                       "ChatCompletionContentPartAudioParam":  {
+                                                                                   "properties":  "@{audio_url=; type=}",
+                                                                                   "type":  "object",
+                                                                                   "required":  "audio_url type",
+                                                                                   "title":  "ChatCompletionContentPartAudioParam"
+                                                                               },
+                                       "ChatCompletionContentPartImageEmbedsParam":  {
+                                                                                         "properties":  "@{image_embeds=; type=}",
+                                                                                         "type":  "object",
+                                                                                         "required":  "image_embeds type",
+                                                                                         "title":  "ChatCompletionContentPartImageEmbedsParam"
+                                                                                     },
+                                       "ChatCompletionContentPartImageParam":  {
+                                                                                   "properties":  "@{image_url=; type=}",
+                                                                                   "type":  "object",
+                                                                                   "required":  "image_url type",
+                                                                                   "title":  "ChatCompletionContentPartImageParam"
+                                                                               },
+                                       "ChatCompletionContentPartInputAudioParam":  {
+                                                                                        "properties":  "@{input_audio=; type=}",
+                                                                                        "type":  "object",
+                                                                                        "required":  "input_audio type",
+                                                                                        "title":  "ChatCompletionContentPartInputAudioParam"
+                                                                                    },
+                                       "ChatCompletionContentPartRefusalParam":  {
+                                                                                     "properties":  "@{refusal=; type=}",
+                                                                                     "type":  "object",
+                                                                                     "required":  "refusal type",
+                                                                                     "title":  "ChatCompletionContentPartRefusalParam"
+                                                                                 },
+                                       "ChatCompletionContentPartTextParam":  {
+                                                                                  "properties":  "@{text=; type=}",
+                                                                                  "type":  "object",
+                                                                                  "required":  "text type",
+                                                                                  "title":  "ChatCompletionContentPartTextParam"
+                                                                              },
+                                       "ChatCompletionContentPartVideoParam":  {
+                                                                                   "properties":  "@{video_url=; type=}",
+                                                                                   "type":  "object",
+                                                                                   "required":  "video_url type",
+                                                                                   "title":  "ChatCompletionContentPartVideoParam"
+                                                                               },
+                                       "ChatCompletionDeveloperMessageParam":  {
+                                                                                   "properties":  "@{content=; role=; name=}",
+                                                                                   "type":  "object",
+                                                                                   "required":  "content role",
+                                                                                   "title":  "ChatCompletionDeveloperMessageParam"
+                                                                               },
+                                       "ChatCompletionFunctionMessageParam":  {
+                                                                                  "properties":  "@{content=; name=; role=}",
+                                                                                  "type":  "object",
+                                                                                  "required":  "content name role",
+                                                                                  "title":  "ChatCompletionFunctionMessageParam"
+                                                                              },
+                                       "ChatCompletionMessageToolCallParam":  {
+                                                                                  "properties":  "@{id=; function=; type=}",
+                                                                                  "type":  "object",
+                                                                                  "required":  "id function type",
+                                                                                  "title":  "ChatCompletionMessageToolCallParam"
+                                                                              },
+                                       "ChatCompletionNamedFunction":  {
+                                                                           "properties":  "@{name=}",
+                                                                           "additionalProperties":  true,
+                                                                           "type":  "object",
+                                                                           "required":  "name",
+                                                                           "title":  "ChatCompletionNamedFunction"
+                                                                       },
+                                       "ChatCompletionNamedToolChoiceParam":  {
+                                                                                  "properties":  "@{function=; type=}",
+                                                                                  "additionalProperties":  true,
+                                                                                  "type":  "object",
+                                                                                  "required":  "function",
+                                                                                  "title":  "ChatCompletionNamedToolChoiceParam"
+                                                                              },
+                                       "ChatCompletionRequest":  {
+                                                                     "properties":  "@{messages=; model=; frequency_penalty=; logit_bias=; logprobs=; top_logprobs=; max_tokens=; max_completion_tokens=; n=; presence_penalty=; response_format=; seed=; stop=; stream=; stream_options=; temperature=; top_p=; tools=; tool_choice=; parallel_tool_calls=; user=; best_of=; use_beam_search=; top_k=; min_p=; repetition_penalty=; length_penalty=; stop_token_ids=; include_stop_str_in_output=; ignore_eos=; min_tokens=; skip_special_tokens=; spaces_between_special_tokens=; truncate_prompt_tokens=; prompt_logprobs=; echo=; add_generation_prompt=; continue_final_message=; add_special_tokens=; documents=; chat_template=; chat_template_kwargs=; mm_processor_kwargs=; guided_json=; guided_regex=; guided_choice=; guided_grammar=; guided_decoding_backend=; guided_whitespace_pattern=; priority=; request_id=; logits_processors=; return_tokens_as_token_ids=}",
+                                                                     "additionalProperties":  true,
+                                                                     "type":  "object",
+                                                                     "required":  "messages",
+                                                                     "title":  "ChatCompletionRequest"
+                                                                 },
+                                       "ChatCompletionSystemMessageParam":  {
+                                                                                "properties":  "@{content=; role=; name=}",
+                                                                                "type":  "object",
+                                                                                "required":  "content role",
+                                                                                "title":  "ChatCompletionSystemMessageParam"
+                                                                            },
+                                       "ChatCompletionToolMessageParam":  {
+                                                                              "properties":  "@{content=; role=; tool_call_id=}",
+                                                                              "type":  "object",
+                                                                              "required":  "content role tool_call_id",
+                                                                              "title":  "ChatCompletionToolMessageParam"
+                                                                          },
+                                       "ChatCompletionToolsParam":  {
+                                                                        "properties":  "@{type=; function=}",
+                                                                        "additionalProperties":  true,
+                                                                        "type":  "object",
+                                                                        "required":  "function",
+                                                                        "title":  "ChatCompletionToolsParam"
+                                                                    },
+                                       "ChatCompletionUserMessageParam":  {
+                                                                              "properties":  "@{content=; role=; name=}",
+                                                                              "type":  "object",
+                                                                              "required":  "content role",
+                                                                              "title":  "ChatCompletionUserMessageParam"
+                                                                          },
+                                       "CompletionRequest":  {
+                                                                 "properties":  "@{model=; prompt=; best_of=; echo=; frequency_penalty=; logit_bias=; logprobs=; max_tokens=; n=; presence_penalty=; seed=; stop=; stream=; stream_options=; suffix=; temperature=; top_p=; user=; use_beam_search=; top_k=; min_p=; repetition_penalty=; length_penalty=; stop_token_ids=; include_stop_str_in_output=; ignore_eos=; min_tokens=; skip_special_tokens=; spaces_between_special_tokens=; truncate_prompt_tokens=; allowed_token_ids=; prompt_logprobs=; add_special_tokens=; response_format=; guided_json=; guided_regex=; guided_choice=; guided_grammar=; guided_decoding_backend=; guided_whitespace_pattern=; priority=; logits_processors=; return_tokens_as_token_ids=}",
+                                                                 "additionalProperties":  true,
+                                                                 "type":  "object",
+                                                                 "required":  "prompt",
+                                                                 "title":  "CompletionRequest"
+                                                             },
+                                       "CustomChatCompletionContentSimpleAudioParam":  {
+                                                                                           "properties":  "@{audio_url=}",
+                                                                                           "type":  "object",
+                                                                                           "required":  "audio_url",
+                                                                                           "title":  "CustomChatCompletionContentSimpleAudioParam",
+                                                                                           "description":  "A simpler version of the param that only accepts a plain audio_url.\n\nExample:\n{\n    \"audio_url\": \"https://example.com/audio.mp3\"\n}"
+                                                                                       },
+                                       "CustomChatCompletionContentSimpleImageParam":  {
+                                                                                           "properties":  "@{image_url=}",
+                                                                                           "type":  "object",
+                                                                                           "required":  "image_url",
+                                                                                           "title":  "CustomChatCompletionContentSimpleImageParam",
+                                                                                           "description":  "A simpler version of the param that only accepts a plain image_url.\nThis is supported by OpenAI API, although it is not documented.\n\nExample:\n{\n    \"image_url\": \"https://example.com/image.jpg\"\n}"
+                                                                                       },
+                                       "CustomChatCompletionContentSimpleVideoParam":  {
+                                                                                           "properties":  "@{video_url=}",
+                                                                                           "type":  "object",
+                                                                                           "required":  "video_url",
+                                                                                           "title":  "CustomChatCompletionContentSimpleVideoParam",
+                                                                                           "description":  "A simpler version of the param that only accepts a plain audio_url.\n\nExample:\n{\n    \"video_url\": \"https://example.com/video.mp4\"\n}"
+                                                                                       },
+                                       "CustomChatCompletionMessageParam":  {
+                                                                                "properties":  "@{role=; content=; name=; tool_call_id=; tool_calls=}",
+                                                                                "type":  "object",
+                                                                                "required":  "role",
+                                                                                "title":  "CustomChatCompletionMessageParam",
+                                                                                "description":  "Enables custom roles in the Chat Completion API."
+                                                                            },
+                                       "EmbeddingChatRequest":  {
+                                                                    "properties":  "@{model=; messages=; encoding_format=; dimensions=; user=; truncate_prompt_tokens=; additional_data=; add_special_tokens=; chat_template=; chat_template_kwargs=; mm_processor_kwargs=; priority=}",
+                                                                    "additionalProperties":  true,
+                                                                    "type":  "object",
+                                                                    "required":  "messages",
+                                                                    "title":  "EmbeddingChatRequest"
+                                                                },
+                                       "EmbeddingCompletionRequest":  {
+                                                                          "properties":  "@{model=; input=; encoding_format=; dimensions=; user=; truncate_prompt_tokens=; additional_data=; add_special_tokens=; priority=}",
+                                                                          "additionalProperties":  true,
+                                                                          "type":  "object",
+                                                                          "required":  "input",
+                                                                          "title":  "EmbeddingCompletionRequest"
+                                                                      },
+                                       "File":  {
+                                                    "properties":  "@{file=; type=}",
+                                                    "type":  "object",
+                                                    "required":  "file type",
+                                                    "title":  "File"
+                                                },
+                                       "FileFile":  {
+                                                        "properties":  "@{file_data=; file_id=; filename=}",
+                                                        "type":  "object",
+                                                        "title":  "FileFile"
+                                                    },
+                                       "Function":  {
+                                                        "properties":  "@{arguments=; name=}",
+                                                        "type":  "object",
+                                                        "required":  "arguments name",
+                                                        "title":  "Function"
+                                                    },
+                                       "FunctionCall":  {
+                                                            "properties":  "@{arguments=; name=}",
+                                                            "type":  "object",
+                                                            "required":  "arguments name",
+                                                            "title":  "FunctionCall"
+                                                        },
+                                       "FunctionDefinition":  {
+                                                                  "properties":  "@{name=; description=; parameters=}",
+                                                                  "additionalProperties":  true,
+                                                                  "type":  "object",
+                                                                  "required":  "name",
+                                                                  "title":  "FunctionDefinition"
+                                                              },
+                                       "HTTPValidationError":  {
+                                                                   "properties":  "@{detail=}",
+                                                                   "type":  "object",
+                                                                   "title":  "HTTPValidationError"
+                                                               },
+                                       "ImageURL":  {
+                                                        "properties":  "@{url=; detail=}",
+                                                        "type":  "object",
+                                                        "required":  "url",
+                                                        "title":  "ImageURL"
+                                                    },
+                                       "InferenceRequest":  {
+                                                                "properties":  "@{id=; parameters=; inputs=; outputs=}",
+                                                                "type":  "object",
+                                                                "required":  "inputs",
+                                                                "title":  "InferenceRequest",
+                                                                "description":  "InferenceRequest Model\n\n$inference_request =\n{\n  \"id\" : $string #optional,\n  \"parameters\" : $parameters #optional,\n  \"inputs\" : [ $request_input, ... ],\n  \"outputs\" : [ $request_output, ... ] #optional\n}",
+                                                                "example":  "@{id=42; inputs=System.Object[]; outputs=System.Object[]}"
+                                                            },
+                                       "InputAudio":  {
+                                                          "properties":  "@{data=; format=}",
+                                                          "type":  "object",
+                                                          "required":  "data format",
+                                                          "title":  "InputAudio"
+                                                      },
+                                       "JsonSchemaResponseFormat":  {
+                                                                        "properties":  "@{name=; description=; schema=; strict=}",
+                                                                        "additionalProperties":  true,
+                                                                        "type":  "object",
+                                                                        "required":  "name",
+                                                                        "title":  "JsonSchemaResponseFormat"
+                                                                    },
+                                       "ListModelsResponse":  {
+                                                                  "properties":  "@{models=}",
+                                                                  "type":  "object",
+                                                                  "required":  "models",
+                                                                  "title":  "ListModelsResponse",
+                                                                  "description":  "ListModelsResponse\n\n$models_list_response =\n{\n  \"models\" : [ $string, ... ]\n}"
+                                                              },
+                                       "LogitsProcessorConstructor":  {
+                                                                          "properties":  "@{qualname=; args=; kwargs=}",
+                                                                          "type":  "object",
+                                                                          "required":  "qualname",
+                                                                          "title":  "LogitsProcessorConstructor"
+                                                                      },
+                                       "MetadataTensor":  {
+                                                              "properties":  "@{name=; datatype=; shape=}",
+                                                              "type":  "object",
+                                                              "required":  "name datatype shape",
+                                                              "title":  "MetadataTensor",
+                                                              "description":  "MetadataTensor\n\n$metadata_tensor =\n{\n  \"name\" : $string,\n  \"datatype\" : $string,\n  \"shape\" : [ $number, ... ]\n}"
+                                                          },
+                                       "ModelCard":  {
+                                                         "properties":  "@{id=; object=; created=; owned_by=; root=; parent=; max_model_len=; permission=}",
+                                                         "additionalProperties":  true,
+                                                         "type":  "object",
+                                                         "required":  "id",
+                                                         "title":  "ModelCard"
+                                                     },
+                                       "ModelList":  {
+                                                         "properties":  "@{object=; data=}",
+                                                         "additionalProperties":  true,
+                                                         "type":  "object",
+                                                         "title":  "ModelList"
+                                                     },
+                                       "ModelMetadataResponse":  {
+                                                                     "properties":  "@{name=; versions=; platform=; inputs=; outputs=}",
+                                                                     "type":  "object",
+                                                                     "required":  "name platform inputs outputs",
+                                                                     "title":  "ModelMetadataResponse",
+                                                                     "description":  "ModelMetadataResponse\n\n$metadata_model_response =\n{\n  \"name\" : $string,\n  \"versions\" : [ $string, ... ] #optional,\n  \"platform\" : $string,\n  \"inputs\" : [ $metadata_tensor, ... ],\n  \"outputs\" : [ $metadata_tensor, ... ]\n}"
+                                                                 },
+                                       "ModelPermission":  {
+                                                               "properties":  "@{id=; object=; created=; allow_create_engine=; allow_sampling=; allow_logprobs=; allow_search_indices=; allow_view=; allow_fine_tuning=; organization=; group=; is_blocking=}",
+                                                               "additionalProperties":  true,
+                                                               "type":  "object",
+                                                               "title":  "ModelPermission"
+                                                           },
+                                       "ModelReadyResponse":  {
+                                                                  "properties":  "@{name=; ready=}",
+                                                                  "type":  "object",
+                                                                  "required":  "name ready",
+                                                                  "title":  "ModelReadyResponse",
+                                                                  "description":  "ModelReadyResponse\n\n$ready_model_response =\n{\n  \"name\": $string,\n  \"ready\": $bool\n}"
+                                                              },
+                                       "RequestInput":  {
+                                                            "properties":  "@{name=; shape=; datatype=; parameters=; data=}",
+                                                            "type":  "object",
+                                                            "required":  "name shape datatype data",
+                                                            "title":  "RequestInput",
+                                                            "description":  "RequestInput Model\n\n$request_input =\n{\n  \"name\" : $string,\n  \"shape\" : [ $number, ... ],\n  \"datatype\"  : $string,\n  \"parameters\" : $parameters #optional,\n  \"data\" : $tensor_data\n}"
+                                                        },
+                                       "RequestOutput":  {
+                                                             "properties":  "@{name=; parameters=}",
+                                                             "type":  "object",
+                                                             "required":  "name",
+                                                             "title":  "RequestOutput",
+                                                             "description":  "RequestOutput Model\n\n$request_output =\n{\n  \"name\" : $string,\n  \"parameters\" : $parameters #optional,\n}"
+                                                         },
+                                       "ResponseFormat":  {
+                                                              "properties":  "@{type=; json_schema=}",
+                                                              "additionalProperties":  true,
+                                                              "type":  "object",
+                                                              "required":  "type",
+                                                              "title":  "ResponseFormat"
+                                                          },
+                                       "ServerLiveResponse":  {
+                                                                  "properties":  "@{live=}",
+                                                                  "type":  "object",
+                                                                  "required":  "live",
+                                                                  "title":  "ServerLiveResponse",
+                                                                  "example":  "@{live=True}"
+                                                              },
+                                       "ServerMetadataResponse":  {
+                                                                      "properties":  "@{name=; version=; extensions=}",
+                                                                      "type":  "object",
+                                                                      "required":  "name version extensions",
+                                                                      "title":  "ServerMetadataResponse",
+                                                                      "description":  "ServerMetadataResponse\n\n$server_metadata_response =\n{\n  \"name\" : $string,\n  \"version\" : $string,\n  \"extensions\" : [ $string, ... ]\n}"
+                                                                  },
+                                       "ServerReadyResponse":  {
+                                                                   "properties":  "@{ready=}",
+                                                                   "type":  "object",
+                                                                   "required":  "ready",
+                                                                   "title":  "ServerReadyResponse",
+                                                                   "example":  "@{ready=True}"
+                                                               },
+                                       "StreamOptions":  {
+                                                             "properties":  "@{include_usage=; continuous_usage_stats=}",
+                                                             "additionalProperties":  true,
+                                                             "type":  "object",
+                                                             "title":  "StreamOptions"
+                                                         },
+                                       "ValidationError":  {
+                                                               "properties":  "@{loc=; msg=; type=}",
+                                                               "type":  "object",
+                                                               "required":  "loc msg type",
+                                                               "title":  "ValidationError"
+                                                           },
+                                       "VideoURL":  {
+                                                        "properties":  "@{url=}",
+                                                        "type":  "object",
+                                                        "required":  "url",
+                                                        "title":  "VideoURL"
+                                                    }
+                                   }
+                   }
+}
+

@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KServe Chat UI</title>
+    <style>
+      :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+      body { margin: 0; background:#0b0f19; color:#e6e9ef; display:flex; flex-direction:column; height:100vh; }
+      header { padding: 12px 16px; border-bottom: 1px solid #202637; font-weight:600; }
+      main { display:flex; flex-direction:column; gap:12px; padding:16px; max-width:900px; width:100%; margin: 0 auto; flex: 1 1 auto; }
+      .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+      label { font-size: 12px; opacity: .85; }
+      input[type="text"], input[type="number"], textarea { background:#111627; color:#e6e9ef; border:1px solid #202637; border-radius:8px; padding:8px 10px; }
+      input[type="text"], input[type="number"] { height:36px; }
+      input[type="text"] { width: 260px; }
+      textarea { width: 100%; height: 90px; resize: vertical; }
+      button { background:#4256ff; color:white; border:0; border-radius:8px; padding:10px 14px; height:36px; cursor:pointer; }
+      button:disabled { opacity:.6; cursor:not-allowed; }
+      .chat { background:#0e1426; border:1px solid #202637; border-radius:12px; padding:12px; overflow:auto; flex:1 1 auto; }
+      .msg { padding: 8px 10px; margin: 6px 0; border-radius:8px; white-space:pre-wrap; line-height:1.4; }
+      .user { background:#16223b; }
+      .assistant { background:#151c33; }
+      .sys { background:#1a2138; opacity:.9; }
+      .error { color:#ff6b6b; white-space:pre-wrap; }
+      footer { padding:12px 16px; border-top:1px solid #202637; text-align:center; font-size:12px; opacity:.7; }
+    </style>
+  </head>
+  <body>
+    <header>KServe Chat UI</header>
+    <main>
+      <div class="row">
+        <label for="model">Model</label>
+        <input id="model" type="text" value="distilgpt2" title="Model name from /v1/models" />
+        <label for="maxtok">max_tokens</label>
+        <input id="maxtok" type="number" value="128" min="1" max="2048" />
+        <label for="temp">temperature</label>
+        <input id="temp" type="number" value="0.7" min="0" max="2" step="0.1" />
+        <button id="refresh">Refresh models</button>
+      </div>
+
+      <div id="chat" class="chat" aria-live="polite"></div>
+
+      <label for="prompt">Message</label>
+      <textarea id="prompt" placeholder="Say hello..."></textarea>
+      <div class="row">
+        <button id="send">Send</button>
+        <button id="clear">Clear</button>
+        <span id="status"></span>
+      </div>
+
+      <details>
+        <summary>Advanced</summary>
+        <label>Injected chat_template (for models without one, e.g., distilgpt2)</label>
+        <textarea id="template" style="height:120px">{% for m in messages %}
+{% if m['role'] == 'system' %}System: {{ m['content'] }}
+{% elif m['role'] == 'user' %}User: {{ m['content'] }}
+{% elif m['role'] == 'assistant' %}Assistant: {{ m['content'] }}
+{% endif %}
+{% endfor %}
+Assistant:
+</textarea>
+      </details>
+    </main>
+    <footer>UI served by <code>server.js</code> and proxied to KServe on <code>http://localhost:8085</code>.</footer>
+
+    <script>
+      const chatEl = document.getElementById("chat");
+      const promptEl = document.getElementById("prompt");
+      const sendBtn = document.getElementById("send");
+      const clearBtn = document.getElementById("clear");
+      const statusEl = document.getElementById("status");
+      const modelEl = document.getElementById("model");
+      const maxTokEl = document.getElementById("maxtok");
+      const tempEl = document.getElementById("temp");
+      const refreshBtn = document.getElementById("refresh");
+      const tmplEl = document.getElementById("template");
+
+      /**
+       * Chat state we keep in the browser.
+       */
+      const history = [
+        { role: "system", content: "You are a concise assistant." }
+      ];
+
+      function addMsg(role, text) {
+        history.push({ role, content: text });
+        const div = document.createElement("div");
+        div.className = `msg ${role === 'user' ? 'user' : role === 'assistant' ? 'assistant' : 'sys'}`;
+        div.textContent = `${role.toUpperCase()}: ${text}`;
+        chatEl.appendChild(div);
+        chatEl.scrollTop = chatEl.scrollHeight;
+      }
+
+      function setStatus(s) { statusEl.textContent = s || ""; }
+
+      async function refreshModels() {
+        try {
+          setStatus("Loading models…");
+          const r = await fetch("/v1/models");
+          const data = await r.json();
+          const list = data.models || data || [];
+          if (Array.isArray(list) && list.length) {
+            // Prefer a short name if available
+            const preferred = list.find(m => typeof m === 'string' && !m.includes('/')) || list[0];
+            modelEl.value = typeof preferred === 'string' ? preferred : (preferred.id || preferred.name || "distilgpt2");
+            setStatus(`Models: ${list.join(', ')}`);
+          } else {
+            setStatus("No models returned by /v1/models");
+          }
+        } catch (e) {
+          setStatus("Failed to load models: " + (e?.message || e));
+        }
+      }
+
+      refreshBtn.addEventListener("click", refreshModels);
+
+      function asPrompt(messages) {
+        return messages.map(m => {
+          const role = m.role === 'assistant' ? 'Assistant' : (m.role === 'user' ? 'User' : 'System');
+          return `${role}: ${m.content}`;
+        }).join("") + "Assistant: ";
+      }
+
+      async function callChat(messages) {
+        const body = {
+          model: modelEl.value.trim() || "distilgpt2",
+          messages,
+          max_tokens: Number(maxTokEl.value) || 128,
+          temperature: Number(tempEl.value) || 0.7,
+          stream: false,
+          // Inject a minimal chat template for models like distilgpt2 (Transformers >=4.44 requirement)
+          extra_body: { chat_template: tmplEl.value }
+        };
+        const res = await fetch("/openai/v1/chat/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`chat_completions ${res.status}: ${text}`);
+        }
+        return res.json();
+      }
+
+      async function callCompletions(prompt) {
+        const body = {
+          model: modelEl.value.trim() || "distilgpt2",
+          prompt,
+          max_tokens: Number(maxTokEl.value) || 128,
+          temperature: Number(tempEl.value) || 0.7,
+          stream: false
+        };
+        const res = await fetch("/openai/v1/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`completions ${res.status}: ${text}`);
+        }
+        return res.json();
+      }
+
+      async function send() {
+        const text = promptEl.value.trim();
+        if (!text) return;
+        sendBtn.disabled = true;
+        promptEl.value = "";
+        addMsg("user", text);
+        setStatus("Thinking…");
+        try {
+          // Try chat completions first (with injected chat_template)
+          const data = await callChat(history);
+          const content = data?.choices?.[0]?.message?.content?.trim() || "(no content)";
+          addMsg("assistant", content);
+          setStatus("");
+        } catch (err) {
+          console.warn("chat_completions failed, falling back to completions:", err);
+          try {
+            const prompt = asPrompt(history);
+            const data = await callCompletions(prompt);
+            const content = data?.choices?.[0]?.text?.trim() || "(no content)";
+            addMsg("assistant", content);
+            setStatus("(fallback)");
+          } catch (err2) {
+            console.error(err2);
+            const div = document.createElement("div");
+            div.className = "error";
+            div.textContent = err2?.message || String(err2);
+            chatEl.appendChild(div);
+            setStatus("Error");
+          }
+        } finally {
+          sendBtn.disabled = false;
+        }
+      }
+
+      sendBtn.addEventListener("click", send);
+      clearBtn.addEventListener("click", () => {
+        chatEl.innerHTML = "";
+        history.splice(1); // keep system prompt
+        setStatus("");
+      });
+
+      // Load available models on startup (optional)
+      refreshModels();
+    </script>
+  </body>
+</html>

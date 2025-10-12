@@ -1,0 +1,30 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: distilgpt2
+  namespace: default
+  annotations:
+    serving.kserve.io/deploymentMode: RawDeployment
+spec:
+  predictor:
+    model:
+      modelFormat:
+        name: huggingface
+      storageUri: hf://distilbert/distilgpt2   # download source (needs owner/repo)
+      args:
+        - --backend=huggingface
+        - --task=text_generation
+        - --model_name=distilgpt2              # <-- single, slashless served id
+        - --served-model-name=distilgpt2          # exposed name (no slash)
+        - --dtype=float32
+        - --http_port=8080
+      env:
+        - name: HF_TOKEN
+          valueFrom:
+            secretKeyRef: { name: hf-token, key: token }
+        - name: HUGGINGFACE_HUB_TOKEN
+          valueFrom:
+            secretKeyRef: { name: hf-token, key: token }
+      resources:
+        requests: { cpu: "1", memory: "2Gi" }
+        limits:   { cpu: "2", memory: "3Gi" }
